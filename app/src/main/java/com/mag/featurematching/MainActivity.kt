@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.databinding.DataBindingUtil
 import com.mag.featurematching.databinding.ActivityMainBinding
+import com.mag.featurematching.viewmodels.MainActivityViewModel
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding : ActivityMainBinding
@@ -13,6 +14,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.textMain.text = "awawdawd"
+        var vm = MainActivityViewModel()
+        binding.vm = vm
     }
 }
