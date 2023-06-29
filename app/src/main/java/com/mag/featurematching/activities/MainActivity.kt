@@ -1,4 +1,4 @@
-package com.mag.featurematching
+package com.mag.featurematching.activities
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
