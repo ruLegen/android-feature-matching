@@ -4,23 +4,12 @@ import android.util.Log
 import android.view.View
 import androidx.databinding.BaseObservable
 import androidx.databinding.Bindable
+import androidx.lifecycle.ViewModel
 import com.mag.featurematching.BR
+import com.mag.featurematching.camera.ManagedCamera
 import timber.log.Timber
 
-class CameraViewerViewModel : BaseObservable() {
-
-    @get: Bindable
-    var name : String = ""
-    set(value) {
-        field = value
-        notifyPropertyChanged(BR.name)
-    }
-    @get: Bindable
-    var text : String = ""
-        set(value) {
-            field = value
-            notifyPropertyChanged(BR.text)
-        }
+class CameraViewerViewModel : ViewModel() {
 
     fun OnLeftCameraButtonClicked(view: View){
         Log.d("Awdawd","Left camera clicked")
@@ -28,5 +17,9 @@ class CameraViewerViewModel : BaseObservable() {
 
     fun OnRightCameraClicked(view: View){
         Log.d("Awdawd","Right camera clicked")
+    }
+
+    fun cameraInitialized(camera0: ManagedCamera,camera1: ManagedCamera){
+
     }
 }

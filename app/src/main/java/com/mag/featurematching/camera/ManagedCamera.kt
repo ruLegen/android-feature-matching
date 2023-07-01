@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.graphics.*
 import android.hardware.camera2.*
 import android.media.ImageReader
-import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
@@ -18,22 +17,15 @@ import android.view.TextureView
 import androidx.core.content.ContextCompat
 import com.mag.featurematching.interfaces.*
 import com.mag.featurematching.utils.CompareSizesByArea
+import com.mag.featurematching.utils.BitmapPreprocessor
+import com.mag.featurematching.utils.ImageProcessor
 import com.mag.featurematching.views.AutoFitTextureView
 import timber.log.Timber
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-
-/**
- * This class is heavily inspired from Google's Camera2Basic sample at https://github.com/googlesamples/android-Camera2Basic
- * Heavy refactoring has been carried out to move all the code from the Fragment in the sample to a self contained
- * [ManagedCamera] class that can take care of it's own threads and is almost fully self sufficient.
- * By modularizing the Camera in this way we are able to easily create multiple instances (two in this case) while the
- * implementation code remains common between both the cameras.
- */
 
 /**
  * @param systemId holds the cameraId that maps this camera instance to the system's camera device number.
@@ -42,7 +34,9 @@ import kotlin.math.roundToInt
  * @param listener Listener to observe notifications from camera state and FPS changeΩs
  */
 
- class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView, val listener: ManagedCameraStatus) {
+ class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView, val listener: ManagedCameraStatus, val bitmapListener:((b:Bitmap)->Unit)?) {
+
+
 
     // A flag to match the preview playing status of the camera. If initially set to true, then the [ManagedCamera]
     // instance will automatically start the preview when it becomes possible
@@ -58,11 +52,14 @@ import kotlin.math.roundToInt
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
+    private var imagePreprocessorThread: HandlerThread? = null
+    private var imagePreprocessorHandler: Handler? = null
     /**
      * An [ImageReader] that handles still image capture.
      */
     private var imageReader: ImageReader? = null
 
+    private var imagePreprocessor: BitmapPreprocessor? = null
 
     /**
      * A [Semaphore] to prevent the app from exiting before closing the camera.
@@ -111,9 +108,6 @@ import kotlin.math.roundToInt
 
     /**
      * The current state of camera state for taking pictures.
-     * REFACTORING NOTE: CAMERASTSATE_IDLE has been specifically added to allow consumers to know when the Camera is idle
-     *
-     * @see .captureCallback
      */
     var cameraState : CameraState = CameraState.CAMERASTATE_IDLE
         set(value) { //Use Custom setter to track changes
@@ -121,14 +115,7 @@ import kotlin.math.roundToInt
             textureView.post { listener.cameraStateChanged(this@ManagedCamera, value) } // Send on UI Thread
         }
 
-    /**
-     * This is the output file for our picture.
-     */
-    private lateinit var file: File
-
-
     /////////////////////////////////////////////////// Callback Instance Variables ///////////////////////////////////
-
 
     val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
         override fun onSurfaceTextureAvailable(p0: SurfaceTexture, width: Int, height: Int) {
@@ -160,8 +147,6 @@ import kotlin.math.roundToInt
             Timber.i("onSurfaceTextureDestroyed")
             return true
         }
-
-
     }
 
     /**
@@ -203,7 +188,7 @@ import kotlin.math.roundToInt
         private fun process(result: CaptureResult) {
             when (cameraState) {
                 CameraState.CAMERASTATE_PREVIEW -> Unit // Do nothing when the camera preview is working normally.
-                CameraState.CAMERASTATE_WAITING_LOCK -> capturePicture(result)
+                CameraState.CAMERASTATE_WAITING_LOCK -> Unit
                 CameraState.CAMERASTATE_WAITING_PRECAPTURE -> {
                     // CONTROL_AE_STATE can be null on some devices
                     val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
@@ -219,30 +204,12 @@ import kotlin.math.roundToInt
                     val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
                         cameraState = CameraState.CAMERASTATE_PICTURE_TAKEN
-                        captureStillPicture()
                     }
                 }
                 else -> {}
             }
         }
 
-        private fun capturePicture(result: CaptureResult) {
-            val afState = result.get(CaptureResult.CONTROL_AF_STATE)
-            if (afState == null || afState == 0) {
-                captureStillPicture()
-            } else if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED
-                || afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED
-            ) {
-                // CONTROL_AE_STATE can be null on some devices
-                val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
-                if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                    cameraState = CameraState.CAMERASTATE_PICTURE_TAKEN
-                    captureStillPicture()
-                } else {
-                    runPrecaptureSequence()
-                }
-            }
-        }
 
         override fun onCaptureProgressed(
             session: CameraCaptureSession,
@@ -267,12 +234,17 @@ import kotlin.math.roundToInt
      * still image is ready to be saved.
      */
     private val onImageAvailableListener = ImageReader.OnImageAvailableListener {
-        file = File(
-            Environment.getExternalStorageDirectory(),
-            "MultiCam/Cam${systemId}-${filenameFormat.format(Calendar.getInstance().time)}.jpeg"
-        )
+        val image = it.acquireLatestImage() ?: return@OnImageAvailableListener
 
-       // backgroundHandler?.post(ImageSaver(it.acquireNextImage(), file))
+        val bitmap = imagePreprocessor?.preprocessImage(image)
+        image.close()
+        bitmap?: return@OnImageAvailableListener
+        imagePreprocessorHandler!!.post {
+            val processed = ImageProcessor.processImage(bitmap!!)
+            textureView.post{ bitmapListener?.invoke(processed)}
+        }
+
+        //Timber.i("${image.width}x${image.height}#${image.format}")
     }
 
 
@@ -306,12 +278,7 @@ import kotlin.math.roundToInt
                     Arrays.asList(*map.getOutputSizes(ImageFormat.JPEG)),
                     CompareSizesByArea()
                 )
-                imageReader = ImageReader.newInstance(
-                    largest.width, largest.height,
-                    ImageFormat.JPEG, /*maxImages*/ 2
-                ).apply {
-                    setOnImageAvailableListener(onImageAvailableListener, backgroundHandler)
-                }
+
 
                 // Find out if we need to swap dimension to get the preview size relative to sensor
                 // coordinate.
@@ -339,7 +306,10 @@ import kotlin.math.roundToInt
                     maxPreviewWidth, maxPreviewHeight,
                     largest
                 )
-
+                imagePreprocessor = BitmapPreprocessor(previewSize.width,previewSize.height)
+                imageReader = ImageReader.newInstance(previewSize.width, previewSize.height,ImageFormat.JPEG, 2).apply {
+                    setOnImageAvailableListener(onImageAvailableListener, backgroundHandler)
+                }
                 // We are *always* in landscape orientation.
                 textureView.setAspectRatio(previewSize.width, previewSize.height)
 
@@ -440,7 +410,6 @@ import kotlin.math.roundToInt
     private fun createCameraPreviewSession() {
         try {
             val texture = textureView.surfaceTexture
-
             // We configure the size of default buffer to be the size of camera preview we want.
             texture?.setDefaultBufferSize(previewSize.width, previewSize.height)
 
@@ -451,9 +420,13 @@ import kotlin.math.roundToInt
             previewRequestBuilder = cameraDevice!!.createCaptureRequest(
                 CameraDevice.TEMPLATE_PREVIEW
             )
-            previewRequestBuilder.addTarget(surface)
+            previewRequestBuilder.apply {
+                addTarget(surface)
+                addTarget(imageReader?.surface!!)
+            }
 
             // Here, we create a CameraCaptureSession for camera preview.
+ //           SessionConfiguration(SessionConfiguration.SESSION_REGULAR, listOf(surface,imageReader?.surface),backgroundThread)
             cameraDevice?.createCaptureSession(
                 Arrays.asList(surface, imageReader?.surface),
                 object : CameraCaptureSession.StateCallback() {
@@ -529,85 +502,6 @@ import kotlin.math.roundToInt
 
 
     /**
-     * Run the precapture sequence for capturing a still image. This method should be called when
-     * we get a response in [.captureCallback] from [.lockFocus].
-     */
-    private fun runPrecaptureSequence() {
-        try {
-            // This is how to tell the camera to trigger.
-            previewRequestBuilder.set(
-                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START
-            )
-            // Tell #captureCallback to wait for the precapture sequence to be set.
-            cameraState = CameraState.CAMERASTATE_WAITING_PRECAPTURE
-            captureSession?.capture(
-                previewRequestBuilder.build(), captureCallback,
-                backgroundHandler
-            )
-        } catch (e: CameraAccessException) {
-            Timber.e(e)
-        }
-
-    }
-
-    /**
-     * Capture a still picture. This method should be called when we get a response in
-     * [.captureCallback] from both [.lockFocus].
-     */
-    private fun captureStillPicture() {
-        try {
-            if (activity == null || cameraDevice == null) return
-            val rotation = activity.windowManager.defaultDisplay.rotation
-
-            // This is the CaptureRequest.Builder that we use to take a picture.
-            val captureBuilder = cameraDevice?.createCaptureRequest(
-                CameraDevice.TEMPLATE_STILL_CAPTURE
-            )?.apply {
-                imageReader?.surface?.let { addTarget(it) }
-
-                // Sensor orientation is 90 for most devices, or 270 for some devices (eg. Nexus 5X)
-                // We have to take that into account and rotate JPEG properly.
-                // For devices with orientation of 90, we return our mapping from ORIENTATIONS.
-                // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
-                set(
-                    CaptureRequest.JPEG_ORIENTATION,
-                    (ORIENTATIONS.get(rotation) + sensorOrientation + 270) % 360
-                )
-
-                // Use the same AE and AF modes as the preview.
-                set(
-                    CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
-                )
-            }?.also { setAutoFlash(it) }
-
-            val captureCallback = object : CameraCaptureSession.CaptureCallback() {
-
-                override fun onCaptureCompleted(
-                    session: CameraCaptureSession,
-                    request: CaptureRequest,
-                    result: TotalCaptureResult
-                ) {
-//                    activity.showToast("Saved: $file")
-                    Timber.i("Saved: ${file}")
-                    unlockFocus()
-                    textureView.post { listener.cameraSavedPhoto(this@ManagedCamera, file) }
-                }
-            }
-
-            captureSession?.apply {
-                stopRepeating()
-                abortCaptures()
-                captureBuilder?.build()?.let { capture(it, captureCallback, null) }
-            }
-        } catch (e: CameraAccessException) {
-            Timber.e(e)
-        }
-
-    }
-
-    /**
      * Unlock the focus. This method should be called when still image capture sequence is
      * finished.
      */
@@ -653,15 +547,13 @@ import kotlin.math.roundToInt
      * If [isPreviewing] is set to true before calling this function, then the camera instance will automatically
      * start the Camera preview in the supplied TextureView as well
      */
-    fun prepareToPreview() {
+    fun initCamera() {
+        imagePreprocessorThread = HandlerThread("${threadName}-imageprocess").also { it.start() }
+        imagePreprocessorHandler = Handler(imagePreprocessorThread!!.looper)
+
         backgroundThread = HandlerThread(threadName).also { it.start() }
         backgroundHandler = Handler(backgroundThread!!.looper)
         Timber.i("Started background thread: ${threadName}")
-
-        // When the screen is turned off and turned back on, the SurfaceTexture is already
-        // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
-        // a camera and start preview from here (otherwise, we wait until the surface is ready in
-        // the SurfaceTextureListener).
         textureView.surfaceTextureListener = surfaceTextureListener
         if (textureView.isAvailable) {
             openCamera(textureView.width, textureView.height)
@@ -694,10 +586,15 @@ import kotlin.math.roundToInt
     fun releaseResources() {
         closeCamera()
         backgroundThread?.quitSafely()
+        imagePreprocessorThread?.quitSafely()
         try {
             backgroundThread?.join()
             backgroundThread = null
             backgroundHandler = null
+            imagePreprocessorThread?.join()
+            imagePreprocessorThread = null
+            imagePreprocessorHandler = null
+
             Timber.i("Released background thread: ${threadName}")
         } catch (e: InterruptedException) {
             Timber.e(e)
