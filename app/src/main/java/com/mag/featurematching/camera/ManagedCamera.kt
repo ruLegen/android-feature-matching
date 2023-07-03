@@ -18,8 +18,8 @@ import androidx.core.content.ContextCompat
 import com.mag.featurematching.interfaces.*
 import com.mag.featurematching.utils.CompareSizesByArea
 import com.mag.featurematching.utils.BitmapPreprocessor
-import com.mag.featurematching.utils.ImageProcessor
 import com.mag.featurematching.views.AutoFitTextureView
+import com.mag.imageprocessor.ImageProcessor
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -240,7 +240,7 @@ import kotlin.math.roundToInt
         image.close()
         bitmap?: return@OnImageAvailableListener
         imagePreprocessorHandler!!.post {
-            val processed = ImageProcessor.processImage(bitmap!!)
+            val processed = ImageProcessor.adjustBrightness(bitmap,1.2f)
             textureView.post{ bitmapListener?.invoke(processed)}
         }
 
@@ -498,6 +498,7 @@ import kotlin.math.roundToInt
             matrix.postRotate(180f, centerX, centerY)
         }
         textureView.setTransform(matrix)
+
     }
 
 

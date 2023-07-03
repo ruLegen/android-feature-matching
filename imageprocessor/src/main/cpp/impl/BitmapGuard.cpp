@@ -1,0 +1,42 @@
+#include <cassert>
+#include "BitmapGuard.h"
+#include "Utils.h"
+
+BitmapGuard::BitmapGuard(JNIEnv* env, jobject jBitmap)
+        : env{env}, bitmap{jBitmap}, bytes{nullptr} {
+    valid = false;
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) {
+        ALOGE("AndroidBitmap_getInfo failed");
+        return;
+    }
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 &&
+        info.format != ANDROID_BITMAP_FORMAT_A_8) {
+        ALOGE("AndroidBitmap in the wrong format");
+        return;
+    }
+    bytesPerPixel = info.stride / info.width;
+    if (bytesPerPixel != 1 && bytesPerPixel != 4) {
+        ALOGE("Expected a vector size of 1 or 4. Got %d. Extra padding per line not currently "
+              "supported",
+              bytesPerPixel);
+        return;
+    }
+    if (AndroidBitmap_lockPixels(env, bitmap, &bytes) != ANDROID_BITMAP_RESULT_SUCCESS) {
+        ALOGE("AndroidBitmap_lockPixels failed");
+        return;
+    }
+    valid = true;
+}
+
+BitmapGuard::~BitmapGuard() {
+    if (valid) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+    }
+}
+uint8_t* BitmapGuard::get() const {
+    assert(valid);
+    return reinterpret_cast<uint8_t*>(bytes);
+}
+int BitmapGuard::width() const { return info.width; }
+int BitmapGuard::height() const { return info.height; }
+int BitmapGuard::vectorSize() const { return bytesPerPixel; }
