@@ -20,7 +20,9 @@ import com.mag.featurematching.interfaces.*
 import com.mag.featurematching.utils.CompareSizesByArea
 import com.mag.featurematching.utils.BitmapPreprocessor
 import com.mag.featurematching.utils.DispatchableThread
+import com.mag.featurematching.utils.FPSTracker
 import com.mag.featurematching.views.AutoFitTextureView
+import com.mag.imageprocessor.CornerDetectionResult
 import com.mag.imageprocessor.ImageProcessor
 import timber.log.Timber
 import java.text.SimpleDateFormat
@@ -36,7 +38,7 @@ import kotlin.math.roundToInt
  * @param listener Listener to observe notifications from camera state and FPS changeΩs
  */
 
- class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView, val listener: ManagedCameraStatus, val bitmapListener:((b:Bitmap)->Unit)?) {
+ class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView, val listener: ManagedCameraStatus, val bitmapListener:((b:CornerDetectionResult)->Unit)?) {
 
 
 
@@ -44,9 +46,10 @@ import kotlin.math.roundToInt
     // instance will automatically start the preview when it becomes possible
     var isPreviewing = false
 
-    // Capture the last milliseconds to allow fps calculation for this camera view
-    var lastMillis = SystemClock.elapsedRealtime()
-    var lastFPS = 0
+    val inputStreamFPSTracker: FPSTracker = FPSTracker(this::OnInputFPSChanged)
+    val outputStreamFPSTracker: FPSTracker = FPSTracker(this::OnOutputFPSChanged)
+
+
 
     /**
      * An additional thread for running tasks that shouldn't block the UI.
@@ -108,6 +111,13 @@ import kotlin.math.roundToInt
     private var flashSupported = false
 
 
+    private fun OnInputFPSChanged(fps:Int) {
+        textureView.post { listener.cameraFPSchanged(this@ManagedCamera, fps) }
+    }
+    private fun OnOutputFPSChanged(fps:Int) {
+        textureView.post { listener.processFPSchanged(this@ManagedCamera, fps) }
+    }
+
 
     /**
      * The current state of camera state for taking pictures.
@@ -131,19 +141,8 @@ import kotlin.math.roundToInt
             configureTransform(width, height)
         }
 
-        /**
-         * Every time a new frame is drawn on the [SurfaceTexture] this callback is triggered. We use this fact to
-         * calculate the FPS by calculating the diff in millis that have passed since the last frame was drawn.
-         * Calculations are done in Float and then rounded to Int for debouncing to consumer UI
-         */
         override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
-            val currentMillis = SystemClock.elapsedRealtime()
-            val currentFPS = (1000.toFloat() / (currentMillis - lastMillis).toFloat()).roundToInt()
-            if (currentFPS != lastFPS) {
-                textureView.post { listener.cameraFPSchanged(this@ManagedCamera, currentFPS) }
-            }
-            lastMillis = currentMillis
-            lastFPS = currentFPS
+           inputStreamFPSTracker.track()
         }
 
         override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
@@ -245,11 +244,10 @@ import kotlin.math.roundToInt
 
         imagePreprocessorThread?.dispatch {
             val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
-            val processed = ImageProcessor.adjustBrightness(grayScaled,1.2f)
+            val processed = ImageProcessor.detectCorners(grayScaled, 10u)
             textureView.post{ bitmapListener?.invoke(processed)}
+            outputStreamFPSTracker.track()
         }
-
-        //Timber.i("${image.width}x${image.height}#${image.format}")
     }
 
 

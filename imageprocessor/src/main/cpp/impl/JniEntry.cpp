@@ -16,18 +16,19 @@ Java_com_mag_imageprocessor_ImageProcessor_disposeNative(JNIEnv *env, jobject th
     auto* processor = reinterpret_cast<ImageProcessor*>(handler);
     delete processor;
 }
-JNIEXPORT void JNICALL
-Java_com_mag_imageprocessor_ImageProcessor_adjustBrightnessNative(JNIEnv *env, jobject thiz,
+JNIEXPORT jint JNICALL
+Java_com_mag_imageprocessor_ImageProcessor_detectCornersNative(JNIEnv *env, jobject thiz,
                                                                   jlong handler,jobject input,
-                                                                  jobject output,jfloat scale) {
+                                                                  jobject output,jbyte threshold) {
 
     auto* processor = reinterpret_cast<ImageProcessor*>(handler);
     if(processor == nullptr)
-        return;
+        return 0;
 
     BitmapGuard inputGuard = BitmapGuard(env,input);
     BitmapGuard outputGuard = BitmapGuard(env,output);
-    processor->adjustBrightness(inputGuard.get(),outputGuard.get(),inputGuard.width(),inputGuard.height(), inputGuard.vectorSize(),scale);
+    return processor->detectCorners(inputGuard.get(), outputGuard.get(), inputGuard.width(),
+                             inputGuard.height(), inputGuard.vectorSize(), threshold);
 }
 
 

@@ -5,13 +5,8 @@
 #include <cstdint>
 
 class ImageProcessor {
-
-private:
-    int some;
-
 public:
-    int getSome();
-    void adjustBrightness(uint8_t *input, uint8_t *output, int width, int height, int bytesPerPixel,float scale);
+    int detectCorners(uint8_t *input, uint8_t *output, int width, int height, int bytesPerPixel, uint8_t  threshold);
 };
 
 

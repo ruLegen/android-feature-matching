@@ -25,9 +25,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="wdawdawd"
+            android:text='@{String.format("Input FPS: %d; Output FPS: %d",vm.inputFPS, vm.outputFPS)}'
 
-            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
         <TextClock
             android:layout_width="wrap_content"
@@ -110,7 +110,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Cam 0: 30 fps"
+            android:text='@{String.format("Corner count %d",vm.cornerCount)}'
             android:textAppearance="@style/TextAppearance.AppCompat.Body1"
             tools:ignore="HardcodedText" />
 
@@ -119,7 +119,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Cam 1: idle"
+            android:text='@{String.format("Out resilution, %dx%d",vm.outSize.width,vm.outSize.height)}'
             android:textAppearance="@style/TextAppearance.AppCompat.Body1"
             tools:ignore="HardcodedText" />
     </androidx.appcompat.widget.LinearLayoutCompat>

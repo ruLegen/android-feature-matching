@@ -1,6 +1,8 @@
 package com.mag.imageprocessor
 
 import android.graphics.Bitmap
+import android.util.Log
+import android.util.Log.DEBUG
 
 object ImageProcessor {
     private var handler: Long = 0
@@ -10,10 +12,10 @@ object ImageProcessor {
         handler = createImageProcessorNative()
     }
 
-    fun adjustBrightness(input:Bitmap,scale:Float):Bitmap{
+    fun detectCorners(input:Bitmap, threshold:UByte):CornerDetectionResult{
         val output = createCompatibleBitmap(input);
-        adjustBrightnessNative(handler,input,output,scale)
-        return output;
+        val cornerCount = detectCornersNative(handler,input,output,threshold.toByte())
+        return CornerDetectionResult(output,cornerCount);
     }
 
 
@@ -24,5 +26,5 @@ object ImageProcessor {
 
     private  external fun createImageProcessorNative() : Long
     private  external fun disposeNative(handler:Long)
-    private external fun adjustBrightnessNative(handler:Long,input: Bitmap, output: Bitmap, scale: Float)
+    private external fun detectCornersNative(handler:Long,input: Bitmap, output: Bitmap, scale: Byte) :Int
 }

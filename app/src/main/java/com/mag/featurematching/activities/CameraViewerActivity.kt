@@ -2,10 +2,10 @@ package com.mag.featurematching.activities
 
 import android.Manifest
 import android.content.Context
-import android.graphics.Bitmap
 import android.hardware.camera2.CameraManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Size
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
 import com.mag.featurematching.camera.ManagedCamera
@@ -14,6 +14,7 @@ import com.mag.featurematching.interfaces.CameraState
 import com.mag.featurematching.interfaces.ManagedCameraStatus
 import com.mag.featurematching.utils.PermissionHelper
 import com.mag.featurematching.viewmodels.CameraViewerViewModel
+import com.mag.imageprocessor.CornerDetectionResult
 import timber.log.Timber
 import java.io.File
 import java.lang.ref.WeakReference
@@ -29,7 +30,11 @@ class CameraViewerActivity : AppCompatActivity() {
 
     var cameraStateListener = object : ManagedCameraStatus {
         override fun cameraFPSchanged(camera: ManagedCamera, fps: Int) {
+            binding?.vm?.inputFPS = fps;
+        }
 
+        override fun processFPSchanged(camera: ManagedCamera, fps: Int) {
+            binding?.vm?.outputFPS = fps;
         }
 
         override fun cameraStateChanged(camera: ManagedCamera, state: CameraState) {
@@ -98,8 +103,11 @@ class CameraViewerActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         permissionHelper.onRequestPermissionsResult(requestCode,permissions,grantResults)
     }
-    fun onBitmapResult(b:Bitmap) {
-        binding.imageProcessed.setImageBitmap(b)
+    fun onBitmapResult(result:CornerDetectionResult) {
+        binding.imageProcessed.setImageBitmap(result.bitmap)
+        val vm = binding.vm!!
+        vm.cornerCount = result.cornerCount
+        vm.outSize = Size(result.bitmap.width,result.bitmap.height)
     }
 
 }

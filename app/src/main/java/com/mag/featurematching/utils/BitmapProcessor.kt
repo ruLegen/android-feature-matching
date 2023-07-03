@@ -15,7 +15,6 @@ class BitmapPreprocessor(val imageWidth: Int, val imageHeight:Int) {
         if (image == null) {
             return null
         }
-
         try {
             check(rgbFrameBitmap!!.width ==  image.width, { "Invalid size width" })
             check(rgbFrameBitmap!!.height == image.height, { "Invalid size height" })

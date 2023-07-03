@@ -26,4 +26,5 @@ interface ManagedCameraStatus {
     fun cameraFPSchanged(camera: ManagedCamera, fps: Int)
     fun cameraStateChanged(camera: ManagedCamera, state: CameraState)
     fun cameraSavedPhoto(camera: ManagedCamera, filePath:File)
+    fun processFPSchanged(camera: ManagedCamera, fps: Int)
 }
