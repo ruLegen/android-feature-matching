@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Size
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.ViewModelProvider
 import com.mag.featurematching.camera.ManagedCamera
@@ -63,6 +64,9 @@ class CameraViewerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+
         binding = ActivityCameraViewerBinding.inflate(layoutInflater)
         binding.vm = ViewModelProvider(this).get(CameraViewerViewModel::class.java);
         setContentView(binding.root)
