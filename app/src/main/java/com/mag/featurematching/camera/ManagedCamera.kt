@@ -38,9 +38,15 @@ import kotlin.math.roundToInt
  * @param listener Listener to observe notifications from camera state and FPS changeΩs
  */
 
- class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView, val listener: ManagedCameraStatus, val bitmapListener:((b:CornerDetectionResult)->Unit)?) {
+ class ManagedCamera(val systemId: String, val threadName: String, val textureView: AutoFitTextureView) {
 
+    var isInited: Boolean = false
+        private set
 
+    var listener: ManagedCameraStatus? = null
+    var bitmapListener:((b:CornerDetectionResult)->Unit)? = null
+
+    var detectThreshold: UByte = 10u
 
     // A flag to match the preview playing status of the camera. If initially set to true, then the [ManagedCamera]
     // instance will automatically start the preview when it becomes possible
@@ -51,18 +57,12 @@ import kotlin.math.roundToInt
 
 
 
-    /**
-     * An additional thread for running tasks that shouldn't block the UI.
-     */
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
     private var imagePreprocessorThread: DispatchableThread? = null
-    /**
-     * An [ImageReader] that handles still image capture.
-     */
-    private var imageReader: ImageReader? = null
 
+    private var imageReader: ImageReader? = null
     private var imagePreprocessor: BitmapPreprocessor? = null
 
     /**
@@ -105,30 +105,40 @@ import kotlin.math.roundToInt
     private lateinit var previewSize: Size
 
 
-    /**
-     * Whether the current camera device supports Flash or not.
-     */
-    private var flashSupported = false
-
-
     private fun OnInputFPSChanged(fps:Int) {
-        textureView.post { listener.cameraFPSchanged(this@ManagedCamera, fps) }
+        textureView.post { listener?.cameraFPSchanged(this@ManagedCamera, fps) }
     }
     private fun OnOutputFPSChanged(fps:Int) {
-        textureView.post { listener.processFPSchanged(this@ManagedCamera, fps) }
+        textureView.post { listener?.processFPSchanged(this@ManagedCamera, fps) }
     }
 
+    /**
+     * This a callback object for the [ImageReader]. "onImageAvailable" will be called when a
+     * still image is ready to be saved.
+     */
+    private val onImageAvailableListener = ImageReader.OnImageAvailableListener {
+        val image = it.acquireLatestImage() ?: return@OnImageAvailableListener
 
+        val bitmap = imagePreprocessor?.preprocessImage(image)
+        image.close()
+        bitmap?: return@OnImageAvailableListener
+
+        imagePreprocessorThread?.dispatch {
+            val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
+            val processed = ImageProcessor.detectCorners(grayScaled, detectThreshold)
+            textureView.post{ bitmapListener?.invoke(processed)}
+            outputStreamFPSTracker.track()
+        }
+    }
     /**
      * The current state of camera state for taking pictures.
      */
     var cameraState : CameraState = CameraState.CAMERASTATE_IDLE
         set(value) { //Use Custom setter to track changes
             field = value
-            textureView.post { listener.cameraStateChanged(this@ManagedCamera, value) } // Send on UI Thread
+            textureView.post { listener?.cameraStateChanged(this@ManagedCamera, value) } // Send on UI Thread
         }
 
-    /////////////////////////////////////////////////// Callback Instance Variables ///////////////////////////////////
 
     val surfaceTextureListener = object : TextureView.SurfaceTextureListener {
         override fun onSurfaceTextureAvailable(p0: SurfaceTexture, width: Int, height: Int) {
@@ -231,34 +241,11 @@ import kotlin.math.roundToInt
 
     }
 
-    /**
-     * This a callback object for the [ImageReader]. "onImageAvailable" will be called when a
-     * still image is ready to be saved.
-     */
-    private val onImageAvailableListener = ImageReader.OnImageAvailableListener {
-        val image = it.acquireLatestImage() ?: return@OnImageAvailableListener
 
-        val bitmap = imagePreprocessor?.preprocessImage(image)
-        image.close()
-        bitmap?: return@OnImageAvailableListener
-
-        imagePreprocessorThread?.dispatch {
-            val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
-            val processed = ImageProcessor.detectCorners(grayScaled, 10u)
-            textureView.post{ bitmapListener?.invoke(processed)}
-            outputStreamFPSTracker.track()
-        }
-    }
-
-
-    /////////////////////////////////// Computed properties /////////////////////////////
 
 
     val activity: Activity
         get() = textureView.context as Activity
-
-
-    /////////////////////////////////// Implementation ////////////////////////////////////
 
     /**
      * Sets up member variables related to camera.
@@ -315,10 +302,6 @@ import kotlin.math.roundToInt
                 }
                 // We are *always* in landscape orientation.
                 textureView.setAspectRatio(previewSize.width, previewSize.height)
-
-                // Check if the flash is supported.
-                flashSupported =
-                    characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
 
                 // We've found a viable camera and finished setting up member variables,
                 // so we don't need to iterate through other available cameras.
@@ -429,7 +412,6 @@ import kotlin.math.roundToInt
             }
 
             // Here, we create a CameraCaptureSession for camera preview.
- //           SessionConfiguration(SessionConfiguration.SESSION_REGULAR, listOf(surface,imageReader?.surface),backgroundThread)
             cameraDevice?.createCaptureSession(
                 Arrays.asList(surface, imageReader?.surface),
                 object : CameraCaptureSession.StateCallback() {
@@ -446,8 +428,6 @@ import kotlin.math.roundToInt
                                 CaptureRequest.CONTROL_AF_MODE,
                                 CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
                             )
-                            // Flash is automatically enabled when necessary.
-                            setAutoFlash(previewRequestBuilder)
 
                             // Finally, we start displaying the camera preview.
                             previewRequest = previewRequestBuilder.build()
@@ -469,14 +449,6 @@ import kotlin.math.roundToInt
     }
 
 
-    /**
-     * Configures the necessary [android.graphics.Matrix] transformation to `textureView`.
-     * This method should be called after the camera preview size is determined in
-     * setUpCameraOutputs and also the size of `textureView` is fixed.
-     *
-     * @param viewWidth  The width of `textureView`
-     * @param viewHeight The height of `textureView`
-     */
     private fun configureTransform(viewWidth: Int, viewHeight: Int) {
         activity ?: return
         val rotation = activity.windowManager.defaultDisplay.rotation
@@ -504,54 +476,9 @@ import kotlin.math.roundToInt
 
     }
 
-
-    /**
-     * Unlock the focus. This method should be called when still image capture sequence is
-     * finished.
-     */
-    private fun unlockFocus() {
-        try {
-            // Reset the auto-focus trigger
-            previewRequestBuilder.set(
-                CaptureRequest.CONTROL_AF_TRIGGER,
-                CameraMetadata.CONTROL_AF_TRIGGER_CANCEL
-            )
-            setAutoFlash(previewRequestBuilder)
-            captureSession?.capture(
-                previewRequestBuilder.build(), captureCallback,
-                backgroundHandler
-            )
-            // After this, the camera will go back to the normal state of preview.
-            cameraState = CameraState.CAMERASTATE_PREVIEW
-            captureSession?.setRepeatingRequest(
-                previewRequest, captureCallback,
-                backgroundHandler
-            )
-        } catch (e: CameraAccessException) {
-            Timber.e(e)
-        }
-
-    }
-
-
-    private fun setAutoFlash(requestBuilder: CaptureRequest.Builder) {
-        if (flashSupported) {
-            requestBuilder.set(
-                CaptureRequest.CONTROL_AE_MODE,
-                CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH
-            )
-        }
-    }
-
-
-    //////////////////////////// Public / Exposed functions ////////////////////////////////////
-
-    /**
-     * The Consumer should call this method when it wants the [ManagedCamera] to become ready to function
-     * If [isPreviewing] is set to true before calling this function, then the camera instance will automatically
-     * start the Camera preview in the supplied TextureView as well
-     */
     fun initCamera() {
+        if(isInited) return
+
         imagePreprocessorThread = DispatchableThread().apply { start() }
 
         backgroundThread = HandlerThread(threadName).also { it.start() }
@@ -561,12 +488,9 @@ import kotlin.math.roundToInt
         if (textureView.isAvailable) {
             openCamera(textureView.width, textureView.height)
         }
+        isInited = true
     }
 
-    /**
-     * Is called whenever the implementation should be made to match up with the state of [isPreviewing].
-     * [cameraState] is also set to IDLE or PREVIEW to match with the implementation, here.
-     */
     fun updatePreviewStatus() {
         if (isPreviewing) {
             captureSession?.setRepeatingRequest(
@@ -580,12 +504,6 @@ import kotlin.math.roundToInt
         }
     }
 
-
-
-    /**
-     * The Consumer should call this method when it wants the [ManagedCamera] to release camera resources, and shut down
-     * any ongoing previews.
-     */
     fun releaseResources() {
         closeCamera()
         backgroundThread?.quitSafely()
@@ -603,39 +521,13 @@ import kotlin.math.roundToInt
     }
 
 
-    /**
-     * Lock the focus as the first step for a still image capture.
-     */
-    fun lockFocus() {
-        try {
-            // This is how to tell the camera to lock focus.
-            previewRequestBuilder.set(
-                CaptureRequest.CONTROL_AF_TRIGGER,
-                CameraMetadata.CONTROL_AF_TRIGGER_START
-            )
-            // Tell #captureCallback to wait for the lock.
-            cameraState = CameraState.CAMERASTATE_WAITING_LOCK
-            captureSession?.capture(
-                previewRequestBuilder.build(), captureCallback,
-                backgroundHandler
-            )
-        } catch (e: CameraAccessException) {
-            Timber.e(e)
-        }
-
-    }
 
 
     companion object {
-
-        val filenameFormat = SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSSS")
-
-
         /**
          * Conversion from screen rotation to JPEG orientation.
          */
         private val ORIENTATIONS = SparseIntArray()
-        private val FRAGMENT_DIALOG = "dialog"
 
         init {
             ORIENTATIONS.append(Surface.ROTATION_0, 90)

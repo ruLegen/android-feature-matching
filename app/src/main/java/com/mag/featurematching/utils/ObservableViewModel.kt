@@ -1,13 +1,15 @@
 package com.mag.featurematching.utils
 
+import android.app.Application
 import androidx.databinding.Observable
 import androidx.databinding.PropertyChangeRegistry
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 
-open class ObservableViewModel :ViewModel(), Observable{
+open class ObservableViewModel(application: Application) : AndroidViewModel(application), Observable{
 
     @delegate:Transient
-    private val mCallBacks: PropertyChangeRegistry by lazy { PropertyChangeRegistry() }
+    protected val mCallBacks: PropertyChangeRegistry by lazy { PropertyChangeRegistry() }
 
     override fun addOnPropertyChangedCallback(callback: Observable.OnPropertyChangedCallback) {
         mCallBacks.add(callback)

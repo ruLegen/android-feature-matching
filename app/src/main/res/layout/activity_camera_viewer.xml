@@ -24,17 +24,32 @@
             android:id="@+id/text_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:text='@{String.format("Input FPS: %d; Output FPS: %d",vm.inputFPS, vm.outputFPS)}'
-
             android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
-        <TextClock
-            android:layout_width="wrap_content"
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:format12Hour="yyyy-MM-dd HH.mm.ss"
-            android:format24Hour="yyyy-MM-dd HH.mm.ss"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+            android:layout_weight="3"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:textAlignment="viewEnd"
+                android:maxLines="2"
+                android:text='@{String.format("Threshold %d",vm.threshold)}'/>
+            <SeekBar
+                android:layout_width="0dp"
+                android:layout_height="25dp"
+                android:layout_weight="4"
+                android:max="255"
+                android:progress="@={vm.threshold}"
+                app:labelBehavior="gone"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.appcompat.widget.LinearLayoutCompat>
 
     <androidx.appcompat.widget.LinearLayoutCompat
@@ -62,8 +77,10 @@
         <ImageView
             android:id="@+id/image_processed"
             android:layout_width="0dp"
+            android:scaleType="fitStart"
+            android:src="@{vm.processedBitmap}"
             android:layout_height="match_parent"
-            android:layout_marginEnd="8dp"
+            android:layout_gravity="start"
             android:layout_weight="1" />
 
 
@@ -74,29 +91,29 @@
             android:orientation="vertical">
 
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/button_toggle_cam_left"
+                android:id="@+id/button_camera_popup"
                 android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:text="Stop 0"
-                android:onClick="@{vm.OnLeftCameraButtonClicked}"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:padding="10dp"
+                android:onClick="@{vm.onChangeCameraClicked}"
+                android:text="Change\ncamera"
                 tools:ignore="HardcodedText" />
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/button_toggle_cam_right"
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:text="Start 1"
-                android:onClick="@{vm::OnLeftCameraButtonClicked}"
-                tools:ignore="HardcodedText" />
+<!--            <androidx.appcompat.widget.AppCompatButton-->
+<!--                android:id="@+id/button_toggle_cam_right"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="0dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="Start 1"-->
+<!--                tools:ignore="HardcodedText" />-->
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/button_save"
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:text="save" />
+<!--            <androidx.appcompat.widget.AppCompatButton-->
+<!--                android:id="@+id/button_save"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="0dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:text="save" />-->
         </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.appcompat.widget.LinearLayoutCompat>
 

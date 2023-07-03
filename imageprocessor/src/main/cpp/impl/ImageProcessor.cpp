@@ -21,18 +21,4 @@ int ImageProcessor::detectCorners(uint8_t *input, uint8_t *output, int width, in
         output[actual1DIndex +3] = 255;     //a
     }
     return  corners.size();
-    /*
-    for (int i = 0; i < height; ++i) {
-        for (int j = 0; j < width; ++j) {
-            int actual1DIndex = ((i * width)+j)*stride;
-            auto r = (uint8_t)(input[actual1DIndex+0]-50);
-            auto g = (uint8_t)(input[actual1DIndex+1]-40);
-            auto b = (uint8_t)(input[actual1DIndex+2]-54);
-           // auto a = (uint8_t)(input[actual1DIndex+3]*scale);
-            output[actual1DIndex + 0] = r;
-            output[actual1DIndex + 1] = g;
-            output[actual1DIndex + 2] = b;
-            output[actual1DIndex + 3] = 255;        // a
-        }
-    }*/
 }
