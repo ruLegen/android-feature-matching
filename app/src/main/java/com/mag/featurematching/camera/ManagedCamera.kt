@@ -15,9 +15,11 @@ import android.util.SparseIntArray
 import android.view.Surface
 import android.view.TextureView
 import androidx.core.content.ContextCompat
+import com.google.android.renderscript.Toolkit
 import com.mag.featurematching.interfaces.*
 import com.mag.featurematching.utils.CompareSizesByArea
 import com.mag.featurematching.utils.BitmapPreprocessor
+import com.mag.featurematching.utils.DispatchableThread
 import com.mag.featurematching.views.AutoFitTextureView
 import com.mag.imageprocessor.ImageProcessor
 import timber.log.Timber
@@ -52,8 +54,7 @@ import kotlin.math.roundToInt
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
-    private var imagePreprocessorThread: HandlerThread? = null
-    private var imagePreprocessorHandler: Handler? = null
+    private var imagePreprocessorThread: DispatchableThread? = null
     /**
      * An [ImageReader] that handles still image capture.
      */
@@ -105,6 +106,8 @@ import kotlin.math.roundToInt
      * Whether the current camera device supports Flash or not.
      */
     private var flashSupported = false
+
+
 
     /**
      * The current state of camera state for taking pictures.
@@ -239,8 +242,10 @@ import kotlin.math.roundToInt
         val bitmap = imagePreprocessor?.preprocessImage(image)
         image.close()
         bitmap?: return@OnImageAvailableListener
-        imagePreprocessorHandler!!.post {
-            val processed = ImageProcessor.adjustBrightness(bitmap,1.2f)
+
+        imagePreprocessorThread?.dispatch {
+            val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
+            val processed = ImageProcessor.adjustBrightness(grayScaled,1.2f)
             textureView.post{ bitmapListener?.invoke(processed)}
         }
 
@@ -549,8 +554,7 @@ import kotlin.math.roundToInt
      * start the Camera preview in the supplied TextureView as well
      */
     fun initCamera() {
-        imagePreprocessorThread = HandlerThread("${threadName}-imageprocess").also { it.start() }
-        imagePreprocessorHandler = Handler(imagePreprocessorThread!!.looper)
+        imagePreprocessorThread = DispatchableThread().apply { start() }
 
         backgroundThread = HandlerThread(threadName).also { it.start() }
         backgroundHandler = Handler(backgroundThread!!.looper)
@@ -587,14 +591,12 @@ import kotlin.math.roundToInt
     fun releaseResources() {
         closeCamera()
         backgroundThread?.quitSafely()
-        imagePreprocessorThread?.quitSafely()
+        imagePreprocessorThread?.close()
         try {
             backgroundThread?.join()
             backgroundThread = null
             backgroundHandler = null
-            imagePreprocessorThread?.join()
             imagePreprocessorThread = null
-            imagePreprocessorHandler = null
 
             Timber.i("Released background thread: ${threadName}")
         } catch (e: InterruptedException) {

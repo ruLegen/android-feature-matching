@@ -7,7 +7,8 @@ int ImageProcessor::getSome() {
 
 void ImageProcessor::adjustBrightness(uint8_t *input, uint8_t *output, int width, int height,int bytesPerPixel, float scale) {
     std::vector<fast_xy> corners;
-    std::unique_ptr<uint8_t> data = std::unique_ptr<uint8_t>(new uint8_t[width*height]);
+
+    std::unique_ptr<uint8_t[]> data = std::unique_ptr<uint8_t[]>(new uint8_t[width*height]);
     auto rawPtr = data.get();
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
@@ -15,12 +16,10 @@ void ImageProcessor::adjustBrightness(uint8_t *input, uint8_t *output, int width
             int input1DIndex = outActual1DIndex*bytesPerPixel;
 
             auto r = input[input1DIndex+0];
-            auto g = input[input1DIndex+1];
-            auto b = input[input1DIndex+2];
-            rawPtr[outActual1DIndex] =   (uint8_t) (0.2126 *r + 0.7152 *g + 0.0722 * b);
+            rawPtr[outActual1DIndex] =   r;
         }
     }
-    fast_corner_detect_10(data.get(),width,height,width,20,corners);
+    fast_corner_detect_10(data.get(),width,height,width,1,corners);
 //    ALOGI("%d",corners.size());
     for(auto location : corners){
         int actual1DIndex = ((location.y * width)+location.x)*bytesPerPixel;
