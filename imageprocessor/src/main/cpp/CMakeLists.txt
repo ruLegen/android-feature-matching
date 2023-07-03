@@ -5,6 +5,7 @@ project("imageprocessor")
 file(GLOB SOURCES impl/*.cpp)
 
 add_library(imageprocessor SHARED ${SOURCES})
+MESSAGE(${SOURCES})
 target_include_directories(imageprocessor PUBLIC include)
 
 find_library(log-lib

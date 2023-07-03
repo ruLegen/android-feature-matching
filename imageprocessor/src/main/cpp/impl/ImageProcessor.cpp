@@ -1,13 +1,12 @@
 #include "ImageProcessor.h"
 #include "Fast.h"
 #include "Utils.h"
+#include "f9.h"
 int ImageProcessor::getSome() {
     return this->some;
 }
 
 void ImageProcessor::adjustBrightness(uint8_t *input, uint8_t *output, int width, int height,int bytesPerPixel, float scale) {
-    std::vector<fast_xy> corners;
-
     std::unique_ptr<uint8_t[]> data = std::unique_ptr<uint8_t[]>(new uint8_t[width*height]);
     auto rawPtr = data.get();
     for (int i = 0; i < height; ++i) {
@@ -19,7 +18,8 @@ void ImageProcessor::adjustBrightness(uint8_t *input, uint8_t *output, int width
             rawPtr[outActual1DIndex] =   r;
         }
     }
-    fast_corner_detect_10(data.get(),width,height,width,1,corners);
+   auto f9 = F9();
+    auto corners = f9.detectCorners(data.get(),width,height,width,10, false);
 //    ALOGI("%d",corners.size());
     for(auto location : corners){
         int actual1DIndex = ((location.y * width)+location.x)*bytesPerPixel;
