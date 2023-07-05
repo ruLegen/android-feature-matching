@@ -159,8 +159,4 @@ class CameraViewerViewModel(application: Application) : ObservableViewModel(appl
     private fun updateCameraThreshold(value: Int) {
         camera?.detectThreshold = value.toUByte()
     }
-
-
-
-
 }

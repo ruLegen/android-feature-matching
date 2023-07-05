@@ -62,9 +62,6 @@ class CameraViewerActivity : AppCompatActivity(){
 
 
         binding.vm?.initCameras()
-
-
-        //camera1 = ManagedCamera(camera1Id,"${camera1Id}-thread",binding.viewFinderRight, cameraStateListener, this::onBitmapResult )
     }
     private fun onCurrentCameraChanged(cameraId: String) {
         if(cameraId.isEmpty())
