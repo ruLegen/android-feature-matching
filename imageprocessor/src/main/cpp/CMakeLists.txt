@@ -8,8 +8,7 @@ add_library(imageprocessor SHARED ${SOURCES})
 MESSAGE(${SOURCES})
 target_include_directories(imageprocessor PUBLIC include)
 
-find_library(log-lib
-            log)
+find_library(log-lib log)
 
 target_link_libraries( # Specifies the target library.
         imageprocessor

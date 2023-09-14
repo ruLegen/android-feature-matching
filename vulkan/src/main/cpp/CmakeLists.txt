@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.18.1)
+SET(PROJECT "vulkan_interactor")
+
+project("${PROJECT}")
+
+file(GLOB SOURCES impl/*.cpp)
+
+MESSAGE("AAAAAAAAAAAA ${VULKAN_HEADERS}")
+
+add_library(${PROJECT} SHARED ${SOURCES})
+target_include_directories(${PROJECT} PUBLIC include)
+
+find_library(log-lib
+            vulkan
+            log)
+
+target_link_libraries( # Specifies the target library.
+        ${PROJECT}
+        vulkan
+       # cpufeatures
+        jnigraphics
+        ${log-lib})

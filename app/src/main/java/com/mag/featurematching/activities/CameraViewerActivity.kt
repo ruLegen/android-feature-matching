@@ -12,6 +12,7 @@ import com.mag.featurematching.camera.ManagedCamera
 import com.mag.featurematching.databinding.ActivityCameraViewerBinding
 import com.mag.featurematching.utils.PermissionHelper
 import com.mag.featurematching.viewmodels.CameraViewerViewModel
+import com.mag.vulkan.Vulkan
 import timber.log.Timber
 import java.lang.ref.WeakReference
 
@@ -24,9 +25,9 @@ class CameraViewerActivity : AppCompatActivity(){
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        var v = Vulkan()
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-
         binding = ActivityCameraViewerBinding.inflate(layoutInflater)
         var viewmodel = ViewModelProvider(this).get(CameraViewerViewModel::class.java);
         viewmodel.onCurrentCameraChanged = this::onCurrentCameraChanged
