@@ -1,6 +1,8 @@
 package com.mag.vulkan
 
-class Vulkan {
+import android.content.res.AssetManager
+
+class Vulkan() {
     private var mPtr: Long = 0
 
     init {
