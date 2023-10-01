@@ -6,23 +6,23 @@ BitmapGuard::BitmapGuard(JNIEnv* env, jobject jBitmap)
         : env{env}, bitmap{jBitmap}, bytes{nullptr} {
     valid = false;
     if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) {
-        ALOGE("AndroidBitmap_getInfo failed");
+        LOGE("AndroidBitmap_getInfo failed");
         return;
     }
     if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 &&
         info.format != ANDROID_BITMAP_FORMAT_A_8) {
-        ALOGE("AndroidBitmap in the wrong format");
+        LOGE("AndroidBitmap in the wrong format");
         return;
     }
     bytesPerPixel = info.stride / info.width;
     if (bytesPerPixel != 1 && bytesPerPixel != 4) {
-        ALOGE("Expected a vector size of 1 or 4. Got %d. Extra padding per line not currently "
+        LOGE("Expected a vector size of 1 or 4. Got %d. Extra padding per line not currently "
               "supported",
               bytesPerPixel);
         return;
     }
     if (AndroidBitmap_lockPixels(env, bitmap, &bytes) != ANDROID_BITMAP_RESULT_SUCCESS) {
-        ALOGE("AndroidBitmap_lockPixels failed");
+        LOGE("AndroidBitmap_lockPixels failed");
         return;
     }
     valid = true;

@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 rootProject.name = "FeatureMatching"
 include ':app'
 include ':imageprocessor'
-include ':vulkan'

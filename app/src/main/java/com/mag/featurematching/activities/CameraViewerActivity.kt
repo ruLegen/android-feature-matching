@@ -12,7 +12,7 @@ import com.mag.featurematching.camera.ManagedCamera
 import com.mag.featurematching.databinding.ActivityCameraViewerBinding
 import com.mag.featurematching.utils.PermissionHelper
 import com.mag.featurematching.viewmodels.CameraViewerViewModel
-import com.mag.vulkan.Vulkan
+import com.mag.imageprocessor.Vulkan
 import timber.log.Timber
 import java.lang.ref.WeakReference
 

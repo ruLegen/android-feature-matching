@@ -2,6 +2,8 @@
 #include <string>
 #include "ImageProcessor.h"
 #include "BitmapGuard.h"
+#include "VulkanInteractor.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,3 +39,18 @@ Java_com_mag_imageprocessor_ImageProcessor_detectCornersNative(JNIEnv *env, jobj
 }
 #endif
 
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_mag_imageprocessor_Vulkan_init(JNIEnv *env, jobject thiz) {
+    auto ptr = new VulkanInteractor();
+    ptr->init();
+    return reinterpret_cast<jlong>(ptr);
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_mag_imageprocessor_VulkanKt_finish(JNIEnv *env, jclass clazz, jlong m_ptr) {
+    VulkanInteractor* interactor = reinterpret_cast<VulkanInteractor*>(m_ptr);
+    delete interactor;
+
+}

@@ -1,17 +1,37 @@
 cmake_minimum_required(VERSION 3.18.1)
+SET(PROJECT "imageprocessor")
 
-project("imageprocessor")
+project("${PROJECT}")
+set(KOMPUTE_OPT_ANDROID_BUILD ON)
+set(KOMPUTE_OPT_DISABLE_VK_DEBUG_LAYERS ON)
+set(KOMPUTE_OPT_USE_BUILT_IN_VULKAN_HEADER OFF)
+
+
+set(SHADERC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/shaderc)
+add_subdirectory("../../../../kompute" ${CMAKE_CURRENT_BINARY_DIR}/kompute_build)
+
 
 file(GLOB SOURCES impl/*.cpp)
 
 add_library(imageprocessor SHARED ${SOURCES})
-MESSAGE(${SOURCES})
-target_include_directories(imageprocessor PUBLIC include)
 
-find_library(log-lib log)
+target_include_directories(${PROJECT} PUBLIC include ${SHADERC_BASE_DIR}/include)
 
+find_library(log-lib
+            vulkan
+            kompute
+            log)
+add_library(shaderc_lib SHARED IMPORTED)
+set_target_properties(shaderc_lib PROPERTIES IMPORTED_LOCATION
+        ${SHADERC_BASE_DIR}/libs/c++_shared/${ANDROID_ABI}/libshaderc.a)
+		
+		
 target_link_libraries( # Specifies the target library.
-        imageprocessor
-       # cpufeatures
+		${PROJECT}
+        vulkan
+        kompute::kompute
+        # cpufeatures
+        log
+        shaderc_lib
         jnigraphics
         ${log-lib})
