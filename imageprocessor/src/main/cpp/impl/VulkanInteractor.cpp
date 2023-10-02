@@ -1,33 +1,24 @@
 
 #include "VulkanInteractor.h"
 #include "vulkan.hpp"
-#include "Utils.h"
-#include "Kompute.hpp"
+#include "log.h"
+#include "kompute/Kompute.hpp"
 #include "shaderc/shaderc.hpp"
+#include "shader_utils.h"
 
+VulkanInteractor::VulkanInteractor()  :
+        mgr()
+{
+    shImageToGrayScale = Shaders::compileShader(Shaders::ImageToGrayScaleShader,shaderc_shader_kind::shaderc_compute_shader);
 
-std::vector<uint32_t> compileShader(const std::string &basicString,shaderc_shader_kind kind) {
-    shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-
-    // Like -DMY_DEFINE=1
-    options.AddMacroDefinition("MY_DEFINE", "1");
-
-    auto module = compiler.CompileGlslToSpv(basicString,kind,"shader.com\0");
-
-
-    if (module.GetNumErrors() > 0) {
-        std::cerr << module.GetErrorMessage();
-    }
-
-    std::vector<uint32_t> result(module.cbegin(), module.cend());
-    return result;
 }
 
+
+
+/*
 void kompute(const std::string& shader) {
 
     // 1. Create Kompute Manager with default settings (device 0, first queue and no extensions)
-    kp::Manager mgr;
 
     // 2. Create and initialise Kompute Tensors through manager
 
@@ -75,47 +66,34 @@ void kompute(const std::string& shader) {
 
 }
 
-
 // Manages / releases all CPU and GPU memory resources
 
+*/
 
-void VulkanInteractor::init() {
-    try
-    {
-        // Define your shader as a string (using string literals for simplicity)
-        // (You can also pass the raw compiled bytes, or even path to file)
-        std::string shader(R"(
-         #version 450
+std::vector<uint8_t>
+VulkanInteractor::imageToGray(std::shared_ptr<std::vector<uint8_t>> image, int width, int height, int bytesPerPixel) {
+    auto resultVector = std::vector<uint8_t>(width * height);
 
-        layout (local_size_x = 1) in;
+    auto inputTensor = mgr.tensorT<uint8_t>(*image);
+    auto outputTensor = mgr.tensorT<uint8_t>(resultVector);
+    std::vector<std::shared_ptr<kp::Tensor>> params = {inputTensor,outputTensor};
 
-        // The input tensors bind index is relative to index in parameter passed
-        layout(set = 0, binding = 0) buffer buf_in_a { float in_a[]; };
-        layout(set = 0, binding = 1) buffer buf_in_b { float in_b[]; };
-        layout(set = 0, binding = 2) buffer buf_out_a { uint out_a[]; };
-        layout(set = 0, binding = 3) buffer buf_out_b { uint out_b[]; };
+    /*
+      // Convert 3d image to 1D
+    auto rawPtr = data.get();
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            int outActual1DIndex = ((i * width)+j);
+            int input1DIndex = outActual1DIndex*bytesPerPixel;
 
-        // Kompute supports push constants updated on dispatch
-        layout(push_constant) uniform PushConstants {
-            float val;
-        } push_const;
-
-        // Kompute also supports spec constants on initalization
-        layout(constant_id = 0) const float const_one = 0;
-
-        void main() {
-            uint index = gl_GlobalInvocationID.x;
-            out_a[index] += uint( in_a[index] * in_b[index] );
-            out_b[index] += uint( const_one * push_const.val );
+            auto r = input[input1DIndex+0];
+            rawPtr[outActual1DIndex] =   r;
         }
-    )");
-        kompute(shader);
     }
-    catch ( ... )
-    {
-        exit( -1 );
-    }
+     */
+    return std::move(resultVector);
 }
+
 
 
 

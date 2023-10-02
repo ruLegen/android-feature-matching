@@ -25,7 +25,6 @@ class CameraViewerActivity : AppCompatActivity(){
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        var v = Vulkan()
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         binding = ActivityCameraViewerBinding.inflate(layoutInflater)

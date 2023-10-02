@@ -1,6 +1,6 @@
 #include <cassert>
 #include "BitmapGuard.h"
-#include "Utils.h"
+#include "log.h"
 
 BitmapGuard::BitmapGuard(JNIEnv* env, jobject jBitmap)
         : env{env}, bitmap{jBitmap}, bytes{nullptr} {

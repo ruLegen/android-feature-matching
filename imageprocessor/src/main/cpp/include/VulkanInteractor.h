@@ -1,12 +1,17 @@
 #ifndef FEATUREMATCHING_VULKANINTERACTOR_H
 #define FEATUREMATCHING_VULKANINTERACTOR_H
 #include "vulkan.hpp"
+#include "kompute/Kompute.hpp"
 
 class VulkanInteractor {
 private:
-    vk::Instance vkInstance;
+    kp::Manager mgr;
 
+    std::vector<uint32_t> shImageToGrayScale;
 public:
-    void init();
+    VulkanInteractor();
+    std::vector<uint8_t> imageToGray(std::shared_ptr<std::vector<uint8_t>> image, int width, int height, int bytesPerPixel);
+
+
 };
 #endif //FEATUREMATCHING_VULKANINTERACTOR_H

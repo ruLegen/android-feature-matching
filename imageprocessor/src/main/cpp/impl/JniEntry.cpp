@@ -44,7 +44,6 @@ extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_mag_imageprocessor_Vulkan_init(JNIEnv *env, jobject thiz) {
     auto ptr = new VulkanInteractor();
-    ptr->init();
     return reinterpret_cast<jlong>(ptr);
 }
 extern "C"

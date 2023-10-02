@@ -4,10 +4,12 @@
 
 #include <cstdint>
 #include "f9.h"
+#include "VulkanInteractor.h"
 
 class ImageProcessor {
 private:
     F9 f9;
+    VulkanInteractor vulkanInteractor;
 public:
     ImageProcessor();
     int detectCorners(uint8_t *input, uint8_t *output, int width, int height, int bytesPerPixel, uint8_t  threshold);
