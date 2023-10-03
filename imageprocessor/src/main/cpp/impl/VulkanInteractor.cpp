@@ -5,11 +5,16 @@
 #include "kompute/Kompute.hpp"
 #include "shaderc/shaderc.hpp"
 #include "shader_utils.h"
+#include <vector>
 
 VulkanInteractor::VulkanInteractor()  :
         mgr()
 {
     shImageToGrayScale = Shaders::compileShader(Shaders::ImageToGrayScaleShader,shaderc_shader_kind::shaderc_compute_shader);
+     auto data = std::make_shared<std::vector<int>>(100*100);
+
+
+    auto image = mgr.image2d(vk::Format::eR8G8B8A8Sint,100,100,(*data).data());
 
 }
 
@@ -74,9 +79,9 @@ std::vector<uint8_t>
 VulkanInteractor::imageToGray(std::shared_ptr<std::vector<uint8_t>> image, int width, int height, int bytesPerPixel) {
     auto resultVector = std::vector<uint8_t>(width * height);
 
-    auto inputTensor = mgr.tensorT<uint8_t>(*image);
-    auto outputTensor = mgr.tensorT<uint8_t>(resultVector);
-    std::vector<std::shared_ptr<kp::Tensor>> params = {inputTensor,outputTensor};
+    //auto inputTensor = mgr.tensorT<uint8_t>(*image);
+   // auto outputTensor = mgr.tensorT<uint8_t>(resultVector);
+   // std::vector<std::shared_ptr<kp::Tensor>> params = {inputTensor,outputTensor};
 
     /*
       // Convert 3d image to 1D
