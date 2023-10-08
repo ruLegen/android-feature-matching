@@ -1,6 +1,6 @@
 #ifndef FEATUREMATCHING_VULKANINTERACTOR_H
 #define FEATUREMATCHING_VULKANINTERACTOR_H
-#include "vulkan.hpp"
+#include <vulkan/vulkan.hpp>
 #include "kompute/Kompute.hpp"
 
 class VulkanInteractor {

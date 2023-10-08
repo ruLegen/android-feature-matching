@@ -26,12 +26,21 @@ set_target_properties(shaderc_lib PROPERTIES IMPORTED_LOCATION
         ${SHADERC_BASE_DIR}/libs/c++_shared/${ANDROID_ABI}/libshaderc.a)
 		
 		
+
+
+set(VULKAN_INCLUDE_DIR ${ANDROID_NDK}/sources/third_party/vulkan/src/include)
+target_sources(vulkanAndroid INTERFACE ${VULKAN_INCLUDE_DIR}/vulkan/vulkan.hpp)
+target_include_directories(vulkanAndroid INTERFACE ${VULKAN_INCLUDE_DIR})
+
+target_compile_definitions(vulkanAndroid INTERFACE VK_NO_PROTOTYPES=1)
+target_compile_definitions(vulkanAndroid INTERFACE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+
 target_link_libraries( # Specifies the target library.
 		${PROJECT}
-        vulkan
-        kompute::kompute
-        # cpufeatures
-        log
-        shaderc_lib
-        jnigraphics
-        ${log-lib})
+		#vulkanAndroid
+		kompute::kompute
+		# cpufeatures
+		log
+		shaderc_lib
+		jnigraphics
+		${log-lib})

@@ -1,8 +1,7 @@
 
 #include "VulkanInteractor.h"
-#include "vulkan.hpp"
+#include <vulkan/vulkan.hpp>
 #include "log.h"
-#include "kompute/Kompute.hpp"
 #include "shaderc/shaderc.hpp"
 #include "shader_utils.h"
 #include <vector>
