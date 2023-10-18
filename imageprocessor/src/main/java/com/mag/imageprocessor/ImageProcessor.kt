@@ -19,10 +19,8 @@ object ImageProcessor {
     }
 
 
-
     private fun createCompatibleBitmap(inputBitmap: Bitmap) =
         Bitmap.createBitmap(inputBitmap.width, inputBitmap.height, inputBitmap.config)
-
 
     private  external fun createImageProcessorNative() : Long
     private  external fun disposeNative(handler:Long)

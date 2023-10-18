@@ -15,5 +15,12 @@ class Vulkan() {
         finish(mPtr)
 
     }
-    private external fun init(): Long}
+
+    fun testVulkan() {
+        testVulkan(mPtr)
+    }
+
+    private external fun init(): Long
+    private external fun testVulkan(mPtr: Long)
     private external fun finish(mPtr: Long)
+}

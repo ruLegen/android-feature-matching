@@ -20,3 +20,4 @@ int ImageProcessor::detectCorners(uint8_t *input, uint8_t *output, int width, in
     return  corners.size();
 }
 
+

@@ -18,6 +18,7 @@ std::vector<uint32_t> compileShader(const std::string &basicString,shaderc_shade
 
     if (module.GetNumErrors() > 0) {
         LOGE("%s",module.GetErrorMessage().c_str());
+        throw std::runtime_error(module.GetErrorMessage().c_str());
     }
 
     std::vector<uint32_t> result(module.cbegin(), module.cend());
@@ -25,26 +26,16 @@ std::vector<uint32_t> compileShader(const std::string &basicString,shaderc_shade
 }
 
 const std::string ImageToGrayScaleShader =R"(
-         #version 450
+        #version 450
+        layout (local_size_x = 1,local_size_y = 1) in;
 
-        layout (local_size_x = 1) in;
-
-        // The input tensors bind index is relative to index in parameter passed
-        layout(set = 0, binding = 0) buffer buf_in_a { int in_a[]; };
-        layout(set = 0, binding = 1) buffer buf_out_a { int out_a[]; };
-
-        // Kompute supports push constants updated on dispatch
-        layout(push_constant) uniform PushConstants {
-            float val;
-        } push_const;
-
-        // Kompute also supports spec constants on initalization
-        layout(constant_id = 0) const float const_one = 0;
+        layout(set = 0, binding = 0,rgba8ui) uniform uimage2D img_input;
+        layout(set = 0, binding = 1,rgba8ui) uniform uimage2D img_out;
 
         void main() {
-            uint index = gl_GlobalInvocationID.x;
-            out_a[index] += uint( in_a[index] * in_b[index] );
-            out_b[index] += uint( const_one * push_const.val );
+            //vec3 pixel = imageLoad(img_input, ivec2(gl_GlobalInvocationID.xy)).rgb;
+            ivec4 pixel = ivec4(255,127,64,0);
+            imageStore(img_out, ivec2(gl_GlobalInvocationID.xy), pixel);
         }
     )";
 

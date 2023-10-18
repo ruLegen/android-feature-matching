@@ -53,3 +53,9 @@ Java_com_mag_imageprocessor_VulkanKt_finish(JNIEnv *env, jclass clazz, jlong m_p
     delete interactor;
 
 }
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_mag_imageprocessor_Vulkan_testVulkan(JNIEnv *env, jobject thiz,jlong m_ptr) {
+    VulkanInteractor* interactor = reinterpret_cast<VulkanInteractor*>(m_ptr);
+    interactor->RunCmd();
+}

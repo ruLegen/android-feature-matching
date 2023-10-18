@@ -129,6 +129,8 @@ class CameraViewerViewModel(application: Application) : ObservableViewModel(appl
     }
     fun onChangeCameraClicked(view:View){
         cameraListId ?: return
+        camera?.vulkanTest();
+        return
         val manager = getApplication<Application>().getSystemService(Context.CAMERA_SERVICE) as CameraManager
         val menu = PopupMenu(getApplication(), view)
         menu.menu.apply {

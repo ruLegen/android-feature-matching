@@ -24,6 +24,7 @@ import com.mag.featurematching.utils.FPSTracker
 import com.mag.featurematching.views.AutoFitTextureView
 import com.mag.imageprocessor.CornerDetectionResult
 import com.mag.imageprocessor.ImageProcessor
+import com.mag.imageprocessor.Vulkan
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -105,6 +106,8 @@ import kotlin.math.roundToInt
     private lateinit var previewSize: Size
 
 
+    private lateinit var vulkan: Vulkan
+
     private fun OnInputFPSChanged(fps:Int) {
         textureView.post { listener?.cameraFPSchanged(this@ManagedCamera, fps) }
     }
@@ -124,9 +127,9 @@ import kotlin.math.roundToInt
         bitmap?: return@OnImageAvailableListener
 
         imagePreprocessorThread?.dispatch {
-            val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
-            val processed = ImageProcessor.detectCorners(grayScaled, detectThreshold)
-            textureView.post{ bitmapListener?.invoke(processed)}
+            //val grayScaled = Toolkit.colorMatrix(bitmap, Toolkit.greyScaleColorMatrix)
+            //val processed = ImageProcessor.detectCorners(grayScaled, detectThreshold)
+            //textureView.post{ bitmapListener?.invoke(processed)}
             outputStreamFPSTracker.track()
         }
     }
@@ -478,7 +481,7 @@ import kotlin.math.roundToInt
 
     fun initCamera() {
         if(isInited) return
-
+        vulkan = Vulkan()
         imagePreprocessorThread = DispatchableThread().apply { start() }
 
         backgroundThread = HandlerThread(threadName).also { it.start() }
@@ -520,7 +523,9 @@ import kotlin.math.roundToInt
         }
     }
 
-
+    fun vulkanTest() {
+        vulkan.testVulkan()
+    }
 
 
     companion object {
