@@ -35,7 +35,7 @@ const std::string ImageToGrayScaleShader =R"(
         void main() {
             //vec3 pixel = imageLoad(img_input, ivec2(gl_GlobalInvocationID.xy)).rgb;
             ivec4 pixel = ivec4(255,127,64,0);
-            imageStore(img_out, ivec2(gl_GlobalInvocationID.xy), pixel);
+            imageStore(img_out, ivec2(gl_GlobalInvocationID.xy), pixel.abgr);
         }
     )";
 
