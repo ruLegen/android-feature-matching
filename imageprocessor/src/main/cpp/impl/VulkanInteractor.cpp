@@ -4,6 +4,7 @@
 #include "log.h"
 #include "shaderc/shaderc.hpp"
 #include "shader_utils.h"
+#include <numeric>
 #include <vector>
 
 VulkanInteractor::VulkanInteractor()  :
@@ -18,6 +19,7 @@ void VulkanInteractor::RunCmd() {
     int w = 10;
     int h = 10;
     auto data = std::make_shared<std::vector<int>>(w*h);
+    std::iota(data->begin(),data->end(), 1);
 
     auto elementSize = sizeof((*data)[0]);
     auto image = mgr.image2d(vk::Format::eR8G8B8A8Uint,w,h,(*data).data(),data->size() * elementSize);
@@ -41,7 +43,7 @@ void VulkanInteractor::RunCmd() {
             ->eval();
 
     auto sq = mgr.sequence();
-    sq->evalAsync(std::make_shared<kp::OpImageSyncDeviceData>(syncImages));
+    sq->evalAsync(std::make_shared<kp::OpImageSyncDeviceData>(images));
     sq->evalAwait();
 
     auto res = outImage->vector<unsigned int >();
@@ -51,7 +53,8 @@ void VulkanInteractor::RunCmd() {
         auto green = (color & 0x00FF0000) >> 16;
         auto blue = (color & 0x0000FF00) >> 8;
         auto alpha = (color & 0x000000FF);
-        std::string f = Formatter() << "R " << red <<"|G "<<green<<"|B "<<blue<<"|A "<<alpha;
+//        std::string f = Formatter() << "R " << red <<"|G "<<green<<"|B "<<blue<<"|A "<<alpha;
+        std::string f = Formatter() <<color<<" ";
 
         LOGE(f.c_str());
     }
