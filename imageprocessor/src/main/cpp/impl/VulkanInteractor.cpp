@@ -23,6 +23,7 @@ void VulkanInteractor::RunCmd() {
 
     auto elementSize = sizeof((*data)[0]);
     auto image = mgr.image2d(vk::Format::eR8G8B8A8Uint,w,h,(*data).data(),data->size() * elementSize);
+    image->rebuild(vk::Format::eR8G8B8A8Uint,w,h,(*data).data(),data->size() * elementSize);
     auto outImage = mgr.image2d(vk::Format::eR8G8B8A8Uint, w, h, nullptr, data->size() * elementSize);
 
     //auto res = outImage->vector<unsigned int>();
